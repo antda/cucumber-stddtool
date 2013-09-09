@@ -1,15 +1,26 @@
-cucumber-stddtool
-=================
+Cucumber STDDTool formatter
+========
 
-Cucumber formatter that reports the cucumber-test-results to STDDTool
-
-
-Usage: 
-
-Place the stddtool_formatter.rb file in your support-folder and run cucumber --format STDDTool
-
-Change the @url-variable in stddtool_formatter.rb if neccesary.
+[Cucumber](http://cukes.info/)-formatter that send testresults to STDDTool
 
 
-TODO: 
-Make gem
+Get started:
+-----
+In your Gemfile:
+
+```ruby
+    gem 'stddtool'
+```
+
+and in your `/support/env.rb` file or any other file under the support directory:
+```ruby
+    require 'stddtool'
+```
+
+
+
+Run with:
+
+```
+cucumber --format STDDTool
+```
