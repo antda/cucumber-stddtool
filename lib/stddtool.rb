@@ -5,10 +5,6 @@ require 'json'
 
   class STDDTool
 
-    def self.works
-    puts "gem working wihoo"
-    end
-
     def initialize(step_mother, io, options)
       @job = 'cucumber plugin'
       @buildnr = Random.rand(500).to_s()
@@ -21,6 +17,14 @@ require 'json'
       featureObj=FeatureObj.new(@job,@buildnr,feature.title,feature.description,feature.file,feature.source_tag_names)
       postFeature(featureObj)
     end
+
+    def before_background(background)
+        @in_background = true
+      end
+
+      def after_background(background)
+        @in_background = nil
+      end
 
     def before_step(step)
       @start_time = Time.now
@@ -38,11 +42,15 @@ require 'json'
 
 
     def after_step_result(keyword, step_match, multiline_arg, status, exception, source_indent, background, file_colon_line)
-       step_name = step_match.format_args(lambda{|param| "*#{param}*"})
-      # message = "#{step_name} #{status}"
-      # puts keyword + " "  + message
-      stepObj=StepObj.new(keyword,step_name,status,exception, @duration)
-      postStep(@scenarioID,stepObj)
+      if @in_background == true
+        # do nothing. background gets reported as step anyway
+      else
+         step_name = step_match.format_args(lambda{|param| "*#{param}*"})
+        # message = "#{step_name} #{status}"
+        # puts keyword + " "  + message
+        stepObj=StepObj.new(keyword,step_name,status,exception, @duration)
+        postStep(@scenarioID,stepObj)
+      end
     end
 
     def step_name(keyword, step_match, status, source_indent, background, file_colon_line)
@@ -105,15 +113,15 @@ class FeatureObj
 
   end
   def to_json
-      {
-        'id' => @id,
-        'job' => @job,
-        'build' => @build,
-        'title' => @feature_title,
-        'description' => @feature_description ,
-        'file' => @feature_file,
-        'tags' => @feature_tags,
-        }.to_json
+    {
+      'id' => @id,
+      'job' => @job,
+      'build' => @build,
+      'title' => @feature_title,
+      'description' => @feature_description ,
+      'file' => @feature_file,
+      'tags' => @feature_tags,
+      }.to_json
   end
 end
 
