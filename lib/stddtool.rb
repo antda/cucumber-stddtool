@@ -12,7 +12,7 @@ require 'json'
     def initialize(step_mother, io, options)
       @job = 'cucumber plugin'
       @buildnr = Random.rand(500).to_s()
-      @url = "http://194.218.9.52:2000/"
+      @url = ENV['URL']
       puts "Initiating STDDTool formatter"
     end
 

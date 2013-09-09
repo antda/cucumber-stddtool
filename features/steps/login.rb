@@ -12,7 +12,7 @@ end
 När(/^jag loggar in som vanlig användare$/) do
 find('#navBtnLogin').click
 fill_in('login-email', :with => 'anton.danielsson@learningwell.se')
-fill_in('login-password', :with => 'kokosboll')
+fill_in('login-password', :with => 'kokos')
 click_button('login-button')  
 end
 
