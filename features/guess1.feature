@@ -1,5 +1,5 @@
 # language: sv	
-
+@mantest
 Egenskap: Gissa nummer ett
 	För att få lite testdata
 	Som en utvecklare
