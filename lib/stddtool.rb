@@ -64,8 +64,18 @@ require 'json'
       request.add_field('X-Auth-Token', '97f0ad9e24ca5e0408a269748d7fe0a0')
       request.body = featureObj.to_json
       response = http.request(request)
-      puts response.body
+      case response.code 
+        when /20\d/
+          #success
+        else
+          puts response.body
+          exit 
+      end
       parsed = JSON.parse(response.body)
+
+      if parsed["error"]
+        puts parsed["error"]
+      end
       @featureID =  parsed["_id"]
 
     end
