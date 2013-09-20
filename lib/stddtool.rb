@@ -6,9 +6,9 @@ require 'json'
   class STDDTool
 
     def initialize(step_mother, io, options)
-      @job = 'cucumber plugin'
       @buildnr = Random.rand(500).to_s()
       @url = ENV['URL']
+      @job = ENV['JOBNAME']
       puts "Initiating STDDTool formatter"
     end
 

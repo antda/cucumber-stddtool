@@ -1,0 +1,15 @@
+GIT
+  remote: git://github.com/antda/cucumber-stddtool.git
+  revision: aa67c01ee10ddbb38d5d2b05d1bf19b9377b083a
+  specs:
+    stddtool (0.0.7)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  stddtool!
