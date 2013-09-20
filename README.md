@@ -22,5 +22,5 @@ and in your `/support/env.rb` file or any other file under the support directory
 Run with:
 
 ```
-cucumber --format STDDTool URL='http://localhost:3000'
+cucumber --format STDDTool URL="http://localhost:3000" JOBNAME="jobname"
 ```
