@@ -67,6 +67,7 @@ require 'json'
       # puts response.body
       parsed = JSON.parse(response.body)
       @featureID =  parsed["_id"]
+      puts @featureID
 
     end
 
