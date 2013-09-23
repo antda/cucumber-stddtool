@@ -6,7 +6,7 @@ require 'json'
   class STDDTool
 
     def initialize(step_mother, io, options)
-      @buildnr = Random.rand(500).to_s()
+      @buildnr = ENV['BUILD']
       @url = ENV['URL']
       @job = ENV['JOBNAME']
       puts "Initiating STDDTool formatter"
