@@ -9,6 +9,9 @@ require 'json'
       @buildnr = ENV['BUILD']
       @url = ENV['URL']
       @job = ENV['JOBNAME']
+      # Generate string as runId
+      o = [('a'..'z'), ('A'..'Z')].map { |i| i.to_a }.flatten
+      @runID = (0...50).map{ o[rand(o.length)] }.join
       puts "Initiating STDDTool formatter"
     end
 
@@ -127,6 +130,7 @@ class FeatureObj
       'id' => @id,
       'job' => @job,
       'build' => @build,
+      'runID' => @runID,
       'title' => @feature_title,
       'description' => @feature_description ,
       'file' => @feature_file,
