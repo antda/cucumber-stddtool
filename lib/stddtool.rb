@@ -12,12 +12,13 @@ require 'json'
       # Generate string as runId
       o = [('a'..'z'), ('A'..'Z')].map { |i| i.to_a }.flatten
       @runID = (0...50).map{ o[rand(o.length)] }.join
+      puts @runID
       puts "Initiating STDDTool formatter"
     end
 
     def before_feature(feature)
       # puts feature.source_tag_names
-      featureObj=FeatureObj.new(@job,@buildnr,feature.title,feature.description,feature.file,feature.source_tag_names)
+      featureObj=FeatureObj.new(@job,@buildnr,feature.title,feature.description,feature.file,feature.source_tag_names,@runID)
       postFeature(featureObj)
     end
 
@@ -109,13 +110,14 @@ require 'json'
   end
 
 class FeatureObj
-  def initialize(job,build,title,description,file,tags)
+  def initialize(job,build,title,description,file,tags,runId)
     @id = title.downcase.gsub(' ', '-')
     @job = job
     @build = build
     @feature_title=title
     @feature_description = description
     @feature_file = file
+    @runID = runId
 
     tagArr = Array.new
     tags.each do |tag|
