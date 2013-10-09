@@ -1,6 +1,7 @@
 # features/support/twitter_formatter.rb
 require 'rubygems'
 require 'json'
+require 'ostruct'
 
 
   class STDDTool
@@ -62,8 +63,9 @@ require 'json'
     end
 
     def postFeature(featureObj)
-       uri = URI.parse(@url)
-      http = Net::HTTP.new(uri.host, uri.port)
+      uri = URI.parse(@url)
+      proxy = ENV['http_proxy'] ? URI.parse(ENV['http_proxy']) : OpenStruct.new
+      http = Net::HTTP::Proxy(proxy.host, proxy.port).start(uri.host, uri.port)
       request = Net::HTTP::Post.new("/collectionapi/features")
       request.add_field('X-Auth-Token', '97f0ad9e24ca5e0408a269748d7fe0a0')
       request.body = featureObj.to_json
@@ -87,17 +89,19 @@ require 'json'
 
     def postStep(scenarioID,stepObj)
       uri = URI.parse(@url)
+      proxy = ENV['http_proxy'] ? URI.parse(ENV['http_proxy']) : OpenStruct.new
       path = "/collectionapi/scenarios/#{scenarioID}"
       req = Net::HTTP::Put.new(path, initheader = { 'X-Auth-Token' => '97f0ad9e24ca5e0408a269748d7fe0a0'})
       req.body = stepObj.to_json
-      response = Net::HTTP.new(uri.host, uri.port).start {|http| http.request(req) }
+      response = Net::HTTP::Proxy(proxy.host, proxy.port).start(uri.host, uri.port).start {|http| http.request(req) }
       # puts response.body
 
     end
 
     def postScenario(scenarioObj)
       uri = URI.parse(@url)
-      http = Net::HTTP.new(uri.host, uri.port)
+      proxy = ENV['http_proxy'] ? URI.parse(ENV['http_proxy']) : OpenStruct.new
+      http = Net::HTTP::Proxy(proxy.host, proxy.port).start(uri.host, uri.port)
       request = Net::HTTP::Post.new("/collectionapi/scenarios")
       request.add_field('X-Auth-Token', '97f0ad9e24ca5e0408a269748d7fe0a0')
       request.body = scenarioObj.to_json
