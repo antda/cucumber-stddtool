@@ -65,9 +65,6 @@ require 'ostruct'
 
     def postFeature(featureObj)
       uri = URI.parse(@url)
-      puts '1. ' + ENV['http_proxy']
-      puts '2. ' + @proxy.host.to_s
-      puts '3. ' + @proxy.port.to_s
       http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port)
       request = Net::HTTP::Post.new("/collectionapi/features")
       request.add_field('X-Auth-Token', '97f0ad9e24ca5e0408a269748d7fe0a0')
