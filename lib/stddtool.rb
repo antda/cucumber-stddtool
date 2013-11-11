@@ -1,8 +1,11 @@
+# encoding: utf-8
 # features/support/twitter_formatter.rb
 require 'rubygems'
 require 'json'
 require 'ostruct'
-
+require 'cucumber/formatter/io'
+require 'gherkin/formatter/argument'
+require 'base64'
 
   class STDDTool
 
@@ -17,6 +20,20 @@ require 'ostruct'
       puts @runID
       puts "Initiating STDDTool formatter"
     end
+
+    def embed(src, mime_type, label)
+      puts "got embedding"
+      case(mime_type)
+      when /^image\/(png|gif|jpg|jpeg)/
+        buf = Base64.encode64(open(src) { |io| io.read })
+        embeddingObj=EmbeddingObj.new(mime_type,buf)
+        puts "starts to post embedding"
+        postEmbedding(@scenarioID,embeddingObj)
+        puts "posted embedding to scenario with id : #{@scenarioID}"
+      end
+    end
+
+
 
     def before_feature(feature)
       # puts feature.source_tag_names
@@ -42,7 +59,7 @@ require 'ostruct'
 
     def scenario_name(keyword, name, file_colon_line, source_indent)
       puts "scenario #{name}"
-      scenarioObj=ScenarioObj.new(@featureID,keyword,name)
+      scenarioObj=ScenarioObj.new(@featureID,keyword,name,@embedding)
       postScenario(scenarioObj)
     end
 
@@ -57,10 +74,6 @@ require 'ostruct'
         stepObj=StepObj.new(keyword,step_name,status,exception, @duration)
         postStep(@scenarioID,stepObj)
       end
-    end
-
-    def step_name(keyword, step_match, status, source_indent, background, file_colon_line)
-     
     end
 
     def postFeature(featureObj)
@@ -93,8 +106,14 @@ require 'ostruct'
       req = Net::HTTP::Put.new(path, initheader = { 'X-Auth-Token' => '97f0ad9e24ca5e0408a269748d7fe0a0'})
       req.body = stepObj.to_json
       response = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port).start {|http| http.request(req) }
-      # puts response.body
+    end
 
+    def postEmbedding(scenarioID,embeddingObj)
+      uri = URI.parse(@url)
+      path = "/collectionapi/scenarios/#{scenarioID}"
+      req = Net::HTTP::Put.new(path, initheader = { 'X-Auth-Token' => '97f0ad9e24ca5e0408a269748d7fe0a0'})
+      req.body = embeddingObj.to_json
+      response = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port).start {|http| http.request(req) }
     end
 
     def postScenario(scenarioObj)
@@ -161,12 +180,23 @@ class StepObj
 end
 
 class ScenarioObj
-  def initialize(featureID,keyword, name)
+  def initialize(featureID,keyword, name,embedding)
     @feature_ID = featureID
     @scenario_keyword=keyword
     @scenario_name=name
+    @scenario_embedding = embedding
   end
   def to_json
-      {'featureId' => @feature_ID,'keyword' => @scenario_keyword, 'name' => @scenario_name}.to_json
+      {'featureId' => @feature_ID,'keyword' => @scenario_keyword, 'name' => @scenario_name,'embedding' => @scenario_embedding }.to_json
+  end
+end
+
+class EmbeddingObj
+  def initialize(mime_type,data)
+    @mime_type = mime_type
+    @data=data
+  end
+  def to_json
+      {'$addToSet' =>{'embeddings' =>{'mime_type' => @mime_type,'data' => @data}}}.to_json
   end
 end
