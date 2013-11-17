@@ -17,20 +17,25 @@ require 'base64'
       # Generate string as runId
       o = [('a'..'z'), ('A'..'Z')].map { |i| i.to_a }.flatten
       @runID = (0...50).map{ o[rand(o.length)] }.join
-      puts @runID
-      puts "Initiating STDDTool formatter"
+      @delayed_messages = []
+      p @runID
+      p "Initiating STDDTool formatter"
     end
 
     def embed(src, mime_type, label)
-      puts "got embedding"
+      p "got embedding"
       case(mime_type)
       when /^image\/(png|gif|jpg|jpeg)/
         buf = Base64.encode64(open(src) { |io| io.read })
         embeddingObj=EmbeddingObj.new(mime_type,buf)
-        puts "starts to post embedding"
+        p "starts to post embedding"
         postEmbedding(@scenarioID,embeddingObj)
-        puts "posted embedding to scenario with id : #{@scenarioID}"
+        p "posted embedding to scenario with id : #{@scenarioID}"
       end
+    end
+
+    def puts(message)
+      @delayed_messages << message
     end
 
 
@@ -50,6 +55,7 @@ require 'base64'
       end
 
     def before_step(step)
+      @delayed_messages = []
       @start_time = Time.now
     end
 
@@ -58,7 +64,7 @@ require 'base64'
     end
 
     def scenario_name(keyword, name, file_colon_line, source_indent)
-      puts "scenario #{name}"
+      p "scenario #{name}"
       scenarioObj=ScenarioObj.new(@featureID,keyword,name,@embedding)
       postScenario(scenarioObj)
     end
@@ -71,7 +77,7 @@ require 'base64'
          step_name = step_match.format_args(lambda{|param| "*#{param}*"})
         # message = "#{step_name} #{status}"
         # puts keyword + " "  + message
-        stepObj=StepObj.new(keyword,step_name,status,exception, @duration)
+        stepObj=StepObj.new(keyword,step_name,status,exception, @duration,@delayed_messages)
         postStep(@scenarioID,stepObj)
       end
     end
@@ -87,13 +93,13 @@ require 'base64'
         when /20\d/
           #success
         else
-          puts response.body
+          p response.body
           exit 
       end
       parsed = JSON.parse(response.body)
 
       if parsed["error"]
-        puts parsed["error"]
+        p parsed["error"]
       end
       @featureID =  parsed["_id"]
 
@@ -164,18 +170,23 @@ end
 
 
 class StepObj
-  def initialize(keyword, name, status,exception,duration)
+  def initialize(keyword, name, status,exception,duration,messages)
     @step_keyword=keyword
     @step_name=name
     @step_status=status
     @step_exception = exception
     @step_duration = duration
+    @step_messages = messages
   end
   def to_json
-      {'$addToSet' => {'steps' =>{'keyword' => @step_keyword,
-        'name' => @step_name ,
-        'result' => {'status' =>@step_status,'error_message'=> @step_exception,'duration'=>@step_duration},
-        }}}.to_json
+      {'$addToSet' => 
+        {'steps' =>{'keyword' => @step_keyword,
+                    'name' => @step_name ,
+                    'result' => {'status' =>@step_status,'error_message'=> @step_exception,'duration'=>@step_duration},
+                    'messages' => @step_messages
+                  }
+        }
+      }.to_json
   end
 end
 
