@@ -11,15 +11,15 @@ require 'base64'
 
     def initialize(step_mother, io, options)
       @buildnr = ENV['BUILD']
-      @url = ENV['URL']
-      @job = ENV['JOBNAME']
+      @job = ENV['JOB']
+      @url = ENV['STDD_URL'] ? ENV['STDD_URL'] : ['www.stddtool.se']
       @proxy = ENV['http_proxy'] ? URI.parse('http://'+ENV['http_proxy']) : OpenStruct.new
       # Generate string as runId
       o = [('a'..'z'), ('A'..'Z')].map { |i| i.to_a }.flatten
       @runID = (0...50).map{ o[rand(o.length)] }.join
       @delayed_messages = []
       p @runID
-      p "Initiating STDDTool formatter"
+      p "Initiating STDDTool(#{@url}) formatter for #{@job} : #{@buildnr}"
     end
 
     def embed(src, mime_type, label)
