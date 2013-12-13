@@ -47,11 +47,11 @@ require 'base64'
     end
 
     def before_background(background)
-        @in_background = true
+        # @in_background = true
       end
 
       def after_background(background)
-        @in_background = nil
+        # @in_background = nil
       end
 
     def before_step(step)
@@ -63,23 +63,30 @@ require 'base64'
       @duration = Time.now - @start_time
     end
 
+
+    def background_name(keyword, name, file_colon_line, source_indent)
+      p "Background #{name}"
+      scenarioObj=ScenarioObj.new(@featureID,keyword,name)
+      postScenario(scenarioObj)
+    end
+
     def scenario_name(keyword, name, file_colon_line, source_indent)
       p "scenario #{name}"
-      scenarioObj=ScenarioObj.new(@featureID,keyword,name,@embedding)
+      scenarioObj=ScenarioObj.new(@featureID,keyword,name)
       postScenario(scenarioObj)
     end
 
 
     def after_step_result(keyword, step_match, multiline_arg, status, exception, source_indent, background, file_colon_line)
-      if @in_background == true
-        # do nothing. background gets reported as step anyway
-      else
+      # if @in_background == true
+      #   # do nothing. background gets reported as step anyway
+      # else
          step_name = step_match.format_args(lambda{|param| "*#{param}*"})
         # message = "#{step_name} #{status}"
         # puts keyword + " "  + message
         stepObj=StepObj.new(keyword,step_name,status,exception, @duration,@delayed_messages)
         postStep(@scenarioID,stepObj)
-      end
+      #end
     end
 
     def postFeature(featureObj)
@@ -191,14 +198,13 @@ class StepObj
 end
 
 class ScenarioObj
-  def initialize(featureID,keyword, name,embedding)
+  def initialize(featureID,keyword, name )
     @feature_ID = featureID
     @scenario_keyword=keyword
     @scenario_name=name
-    @scenario_embedding = embedding
   end
   def to_json
-      {'featureId' => @feature_ID,'keyword' => @scenario_keyword, 'name' => @scenario_name,'embedding' => @scenario_embedding }.to_json
+      {'featureId' => @feature_ID,'keyword' => @scenario_keyword, 'name' => @scenario_name}.to_json
   end
 end
 
