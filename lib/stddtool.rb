@@ -46,13 +46,24 @@ require 'base64'
       postFeature(featureObj)
     end
 
+
+    def before_feature_element(feature_element)
+      @feature_element = FeatureElement.new
+      @feature_element.tags  = Array.new
+      @feature_element.feature_ID = @featureID
+    end
+
+    def tag_name(tag_name)
+      @feature_element ? @feature_element.tags.push({'name' => tag_name}) : true
+    end
+
     def before_background(background)
         # @in_background = true
-      end
+    end
 
-      def after_background(background)
-        # @in_background = nil
-      end
+    def after_background(background)
+      # @in_background = nil
+    end
 
     def before_step(step)
       @delayed_messages = []
@@ -66,24 +77,21 @@ require 'base64'
 
     def background_name(keyword, name, file_colon_line, source_indent)
       p "Background #{name}"
-      scenarioObj=ScenarioObj.new(@featureID,keyword,name)
-      postScenario(scenarioObj)
+      @feature_element.name=name
+      @feature_element.keyword = keyword
+      postFeatureElement(@feature_element)
     end
 
     def scenario_name(keyword, name, file_colon_line, source_indent)
       p "scenario #{name}"
-      scenarioObj=ScenarioObj.new(@featureID,keyword,name)
-      postScenario(scenarioObj)
+      @feature_element.name=name
+      @feature_element.keyword = keyword
+      postFeatureElement(@feature_element)
     end
 
 
     def after_step_result(keyword, step_match, multiline_arg, status, exception, source_indent, background, file_colon_line)
-      # if @in_background == true
-      #   # do nothing. background gets reported as step anyway
-      # else
-         step_name = step_match.format_args(lambda{|param| "*#{param}*"})
-        # message = "#{step_name} #{status}"
-        # puts keyword + " "  + message
+        step_name = step_match.format_args(lambda{|param| "*#{param}*"})
         stepObj=StepObj.new(keyword,step_name,status,exception, @duration,@delayed_messages)
         postStep(@scenarioID,stepObj)
       #end
@@ -129,12 +137,12 @@ require 'base64'
       response = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port).start {|http| http.request(req) }
     end
 
-    def postScenario(scenarioObj)
+    def postFeatureElement(feature_element)
       uri = URI.parse(@url)
       http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port)
       request = Net::HTTP::Post.new("/collectionapi/scenarios")
       request.add_field('X-Auth-Token', '97f0ad9e24ca5e0408a269748d7fe0a0')
-      request.body = scenarioObj.to_json
+      request.body = feature_element.to_json
       response = http.request(request)
       # puts response.body
       parsed = JSON.parse(response.body)
@@ -197,14 +205,13 @@ class StepObj
   end
 end
 
-class ScenarioObj
-  def initialize(featureID,keyword, name )
-    @feature_ID = featureID
-    @scenario_keyword=keyword
-    @scenario_name=name
+class FeatureElement
+  def initialize()
+    tags = Array.new
   end
+  attr_accessor :feature_ID,:keyword,:tags,:name
   def to_json
-      {'featureId' => @feature_ID,'keyword' => @scenario_keyword, 'name' => @scenario_name}.to_json
+      {'featureId' => @feature_ID,'keyword' => @keyword, 'name' => @name,'tags' => @tags}.to_json
   end
 end
 
