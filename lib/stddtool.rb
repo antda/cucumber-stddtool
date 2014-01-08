@@ -36,6 +36,7 @@ require 'base64'
 
     def puts(message)
       @delayed_messages << message
+      super(message)
     end
 
 
