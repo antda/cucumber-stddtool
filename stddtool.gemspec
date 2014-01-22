@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.description = "Cucumber formatter that reports the cucumber-test-results to STDDTool"
   s.authors     = ["Anton Danielsson"]
   s.email       = 'anton.danielsson@learningwell.se'
-  s.files       = ["lib/stddtool.rb"]
+  s.files       = ["lib/stddtool.rb","lib/objects.rb"]
   s.homepage    =
     'https://github.com/antda/cucumber-stddtool'
   s.license       = 'MIT'

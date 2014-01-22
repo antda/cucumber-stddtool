@@ -7,6 +7,8 @@ require 'cucumber/formatter/io'
 require 'gherkin/formatter/argument'
 require 'base64'
 
+require 'objects'
+
   class STDDTool
 
     def initialize(step_mother, io, options)
@@ -149,78 +151,53 @@ require 'base64'
       @scenarioID =  parsed["_id"]
     end
 
+  #additional code for scenario-outline
+
+  def before_outline_table(outline_table)
+    p "before outline table"
+    @inside_outline = true
+    @outline_row = 0
   end
 
-class FeatureObj
-  def initialize(job,build,title,description,file,tags,runId)
-    @id = title.downcase.gsub(' ', '-')
-    @job = job
-    @build = build
-    @feature_title=title
-    @feature_description = description
-    @feature_file = file
-    @runID = runId
+  def after_outline_table(outline_table)
+    p "after outline table"
+    @outline_row = nil
+    @inside_outline = false
+  end
 
-    tagArr = Array.new
-    tags.each do |tag|
-      tagArr.push({'name' => tag})
+  def before_examples(examples)
+     p "before examples"
+  end
+
+  def after_examples(examples)
+    p "after examples"
+  end
+
+  def examples_name(keyword, name)
+    p "keyword: #{keyword}"
+    p "name: #{name}"
+  end
+
+  def after_table_row(table_row)
+    if table_row.exception
+      p "tr exception: #{table_row.exception}"
+      if table_row.exception.is_a? ::Cucumber::Pending
+        p "tr pending"
+      else
+        p "tr failed"
+      end
     end
+    if @outline_row
+      @outline_row += 1
+    end
+  end
+      
+  # def  after_examples_array(arg1)
+  #   p "after examples array: #{arg1}"
+  # end
 
-    @feature_tags = tagArr
+  def table_cell_value(value, status)
+    p "table_cell_value(#{value},#{status})"
+  end
 
-  end
-  def to_json
-    {
-      'id' => @id,
-      'job' => @job,
-      'build' => @build,
-      'runID' => @runID,
-      'title' => @feature_title,
-      'description' => @feature_description ,
-      'file' => @feature_file,
-      'tags' => @feature_tags,
-      }.to_json
-  end
-end
-
-
-class StepObj
-  def initialize(keyword, name, status,exception,duration,messages)
-    @step_keyword=keyword
-    @step_name=name
-    @step_status=status
-    @step_exception = exception
-    @step_duration = duration
-    @step_messages = messages
-  end
-  def to_json
-      {'$addToSet' => 
-        {'steps' =>{'keyword' => @step_keyword,
-                    'name' => @step_name ,
-                    'result' => {'status' =>@step_status,'error_message'=> @step_exception,'duration'=>@step_duration},
-                    'messages' => @step_messages
-                  }
-        }
-      }.to_json
-  end
-end
-
-class FeatureElement
-  def initialize()
-    tags = Array.new
-  end
-  attr_accessor :feature_ID,:keyword,:tags,:name
-  def to_json
-      {'featureId' => @feature_ID,'keyword' => @keyword, 'name' => @name,'tags' => @tags}.to_json
-  end
-end
-
-class EmbeddingObj
-  def initialize(mime_type,data)
-    @mime_type = mime_type
-    @data=data
-  end
-  def to_json
-      {'$addToSet' =>{'embeddings' =>{'mime_type' => @mime_type,'data' => @data}}}.to_json
-  end
 end
