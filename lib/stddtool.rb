@@ -31,7 +31,7 @@ require 'objects'
       case(mime_type)
       when /^image\/(png|gif|jpg|jpeg)/
         p "Encoding image from #{src}"
-        buf = Base64.encode64(open(src) { |io| io.read })
+        buf = Base64.encode64(open(src,'rb') { |io| io.read })
         embeddingObj=EmbeddingObj.new(mime_type,buf)
 
         p "starts to post embedding"
