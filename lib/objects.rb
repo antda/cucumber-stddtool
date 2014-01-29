@@ -18,6 +18,7 @@ class FeatureObj
     @feature_tags = tagArr
 
   end
+  attr_accessor :feature_title
   def to_json
     {
       'id' => @id,
@@ -42,6 +43,7 @@ class StepObj
     @step_duration = duration
     @step_messages = messages
   end
+  attr_accessor :step_name
   def to_json
       {'$addToSet' => 
         {'steps' =>{'keyword' => @step_keyword,
@@ -73,3 +75,20 @@ class EmbeddingObj
       {'$addToSet' =>{'embeddings' =>{'mime_type' => @mime_type,'data' => @data}}}.to_json
   end
 end
+
+# class ScenarioExampleCell
+#   def initialize(row,value,status)
+#     @row = row
+#     @value=value
+#     @status=status
+#   end
+#   def to_json
+#       {"$addToSet" => 
+#         {"outline.#{@row.to_s}" =>{ 
+#                   "value" => @value,
+#                   "status" => @status
+#                 }
+#         }
+#       }.to_json
+#   end
+# end
