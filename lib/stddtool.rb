@@ -20,14 +20,17 @@ require 'base64'
       @delayed_messages = []
       p @runID
       p "Initiating STDDTool formatter"
+      @notConnectedToServer = false
     end
 
     def embed(src, mime_type, label)
       p "got embedding"
       case(mime_type)
       when /^image\/(png|gif|jpg|jpeg)/
+        p "Encoding image from #{src}"
         buf = Base64.encode64(open(src) { |io| io.read })
         embeddingObj=EmbeddingObj.new(mime_type,buf)
+
         p "starts to post embedding"
         postEmbedding(@scenarioID,embeddingObj)
         p "posted embedding to scenario with id : #{@scenarioID}"
@@ -83,6 +86,10 @@ require 'base64'
     end
 
     def postFeature(featureObj)
+      if @notConnectedToServer
+        p "NOT CONNECTED TO SERVER. Feature will not be reported"
+        return
+      end
       uri = URI.parse(@url)
       http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port)
       request = Net::HTTP::Post.new("/collectionapi/features")
@@ -94,7 +101,8 @@ require 'base64'
           #success
         else
           p response.body
-          exit 
+          @notConnectedToServer = true
+          warn "Could not connect to host at url: #{@url}"
       end
       parsed = JSON.parse(response.body)
 
@@ -107,6 +115,7 @@ require 'base64'
 
 
     def postStep(scenarioID,stepObj)
+      return if @notConnectedToServer
       uri = URI.parse(@url)
       path = "/collectionapi/scenarios/#{scenarioID}"
       req = Net::HTTP::Put.new(path, initheader = { 'X-Auth-Token' => '97f0ad9e24ca5e0408a269748d7fe0a0'})
@@ -115,6 +124,7 @@ require 'base64'
     end
 
     def postEmbedding(scenarioID,embeddingObj)
+      return if @notConnectedToServer
       uri = URI.parse(@url)
       path = "/collectionapi/scenarios/#{scenarioID}"
       req = Net::HTTP::Put.new(path, initheader = { 'X-Auth-Token' => '97f0ad9e24ca5e0408a269748d7fe0a0'})
@@ -123,6 +133,7 @@ require 'base64'
     end
 
     def postScenario(scenarioObj)
+      return if @notConnectedToServer
       uri = URI.parse(@url)
       http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port)
       request = Net::HTTP::Post.new("/collectionapi/scenarios")
