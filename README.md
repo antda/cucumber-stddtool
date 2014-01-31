@@ -21,6 +21,8 @@ and in your `/support/env.rb` file or any other file under the support directory
 
 Run with:
 
+```shell
+cucumber --format STDDTool STDD_URL="http://localhost:3000" JOB="myjob" BUILD="2"
 ```
-cucumber --format STDDTool URL="http://localhost:3000" JOBNAME="jobname" BUILD="263"
-```
+
+Note: If your cucumber-features contains scenario-outlines, add the parameter --expand
