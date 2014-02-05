@@ -60,9 +60,9 @@ class FeatureElement
   def initialize()
     tags = Array.new
   end
-  attr_accessor :feature_ID,:keyword,:tags,:name
+  attr_accessor :feature_ID,:keyword,:tags,:name,:element_type
   def to_json
-      {'featureId' => @feature_ID,'keyword' => @keyword, 'name' => @name,'tags' => @tags}.to_json
+      {'featureId' => @feature_ID,'keyword' => @keyword, 'name' => @name,'tags' => @tags,'element_type' => @element_type}.to_json
   end
 end
 

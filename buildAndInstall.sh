@@ -1,3 +1,3 @@
 gem uninstall stddtool
 gem build stddtool.gemspec
-gem install stddtool-0.3.0.2.gem 
+gem install stddtool-0.3.1.1.gem 

@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'stddtool'
-  s.version     = '0.3.0.2'
-  s.date        = '2014-01-29'
+  s.version     = '0.3.1.1'
+  s.date        = '2014-02-05'
   s.summary     = "Cucumber formatter for STDDTool"
   s.description = "Cucumber formatter that reports the cucumber testresults to STDDTool"
   s.authors     = ["Anton Danielsson","Anders Åslund", "Learningwell West"]
