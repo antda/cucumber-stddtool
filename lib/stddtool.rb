@@ -6,9 +6,12 @@ require 'ostruct'
 require 'cucumber/formatter/io'
 require 'gherkin/formatter/argument'
 require 'base64'
-require 'objects'
 require 'cucumber/ast/scenario_outline'
 require 'cucumber/ast/scenario'
+require 'stdd_api'
+
+
+
 
 module Cucumber
   module Formatter
@@ -23,254 +26,231 @@ module Cucumber
 
       def initialize(runtime, path_or_io, options)
         @runtime, @io, @options = runtime, ensure_io(path_or_io, "stddtool"), options
-        @buildnr = ENV['BUILD']
-        @job = ENV['JOB']
-        @url = ENV['STDD_URL'] ? ENV['STDD_URL'] : ['http://www.stddtool.se']
-        @proxy = ENV['http_proxy'] ? URI.parse('http://'+ENV['http_proxy']) : OpenStruct.new
-        # Generate string as runId
-        o = [('a'..'z'), ('A'..'Z')].map { |i| i.to_a }.flatten
-        @runID = (0...50).map{ o[rand(o.length)] }.join
         @delayed_messages = []
         @io.puts @runID
-        @connectionError = nil
-        @io.puts "Initiating STDDTool(#{@url}) formatter for #{@job} : #{@buildnr}"
+        @connection_error = nil
+        @io.puts "Initiating STDDTool(#{@url}) formatter for #{@project} : #{@module}"
         @inside_outline = false
         @io.flush
+
+        @stdd_client = STDDAPI::Client.new(ENV['STDD_URL'],ENV['http_proxy'])
+
+        #Collect all enviroment-variables
+        @customer_name = ENV['CUSTOMER']
+        @project_name = ENV['PROJECT']
+
+        @run_name = ENV['RUN']
+        @run_source = ENV['SOURCE']
+        @run_revision = ENV['REV']
+
+        init_customer_project_and_run(@customer_name,@project_name,@run_name,@run_source,@run_revision)
+
+        @module_name = ENV['MODULE']
+        init_module(@module_name)
+
       end
 
-      def embed(src, mime_type, label)
-        @io.puts "got embedding"
-        case(mime_type)
-          when /^image\/(png|gif|jpg|jpeg)/
-            @io.puts "Encoding image from #{src}"
-            buf = Base64.encode64(open(src,'rb') { |io| io.read })
-            embeddingObj=EmbeddingObj.new(mime_type,buf)
-
-            @io.puts "starts to post embedding"
-            postEmbedding(@scenarioID,embeddingObj)
-            @io.puts "posted embedding to scenario with id : #{@scenarioID}"
+      def init_module name
+        return if @connection_error
+        valid,response = @stdd_client.create_module(@run.id,name,'cucumber',Time.now)
+        if(valid)
+          @module = response
+        else
+          @connection_error = response
+          puts @connection_error
         end
       end
 
-      def before_feature(feature)
-        # puts feature.source_tag_names
-        featureObj=FeatureObj.new(@job,@buildnr,feature.title,feature.description,feature.file,feature.source_tag_names,@runID)
-        postFeature(featureObj)
+      def init_customer_project_and_run customer_name, project_name, run_name, run_source, run_revision
+        return if @connection_error
+        #Customer
+        create_customer_if_not_exist(customer_name)
+        
+        #Project
+        create_project_if_not_exists(@customer.id,project_name)
 
-        @feature_element = FeatureElement.new
-        @feature_element.tags  = Array.new
-        @feature_element.feature_ID = @featureID
+        #Run
+        valid, response = @stdd_client.create_run(@project.id,run_name,run_source,run_revision)
+        if(valid)
+          @run = response
+        else
+          @connection_error = response
+          puts @connection_error
+        end
+
+      end
+
+      def create_customer_if_not_exist customer_name
+        return if @connection_error
+        # Kontrollera om kunden finns
+        valid, response = @stdd_client.get_customer customer_name
+
+        # Om kunden finns
+        if(valid && response)
+          puts "Customer already exists"
+        else
+          puts "Customer does not exist, creating new.."
+          # Skapa en kund
+          valid, response = @stdd_client.create_customer customer_name
+        end
+
+        if(valid)
+          @customer = response
+          return true
+        else
+          @connection_error = response
+          puts @connection_error
+          return false
+        end
+
+      end
+
+    def create_project_if_not_exists customer_id,project_name
+      return if @connection_error
+      # Kontrollera om projektet finns
+      valid, response = @stdd_client.get_project customer_id, project_name
+
+      # Om projektet finns
+      if(valid)
+        puts "Project already exists"
+        @project = response
+        return true
+      end
+
+      puts "Project does not exist, creating new.."
+      # Skapa ett projekt
+      valid, response = @stdd_client.create_project customer_id, project_name
+      if valid
+        @project = response
+        return true
+      else
+        @connection_error = response
+        puts @connection_error
+        return false
+      end
+
+    end
+
+    def embed(src, mime_type, label)
+      return if @connection_error
+      @io.puts "got embedding"
+      case mime_type
+      when /^image\/(png|gif|jpg|jpeg)/
+        buf = Base64.encode64(open(src,'rb') { |io| io.read })
+        embedding=STDDAPI::Objects::Embedding.new(@scenario.id,mime_type,buf)
+      
+        valid,response = @stdd_client.add_embedding_to_scenario(embedding)
+        if(valid)
+          #success
+        else
+          @connection_error = response
+          puts @connection_error
+        end
+      end
+    end
+
+      def before_feature(feature)
+        return if @connection_error
+        # puts feature.source_tag_names
+        @feature = STDDAPI::Objects::Feature.new(@module.id,feature.title,Time.now)
+        @feature.description = feature.description
+        @feature.tags = feature.source_tag_names
+        @feature.file = feature.file
+
+        valid,response = @stdd_client.create_feature(@feature)
+        if(valid)
+          @feature.id = response
+        else
+          @connection_error = response
+          puts @connection_error
+        end
+
+        # @feature_element = FeatureElement.new
+        # @feature_element.tags  = Array.new
+        # @feature_element.feature_ID = @featureID
+        @scenario = STDDAPI::Objects::Scenario.new(@feature.id, "",'scenario','Scenario')
+        @scenario.tags=Array.new
 
       end
 
       def tag_name(tag_name)
-        @feature_element ? @feature_element.tags.push({'name' => tag_name}) : true
-      end
-
-      def before_background(background)
-        # @in_background = true
-      end
-
-      def after_background(background)
-        # @in_background = nil
+        return if @connection_error
+        @scenario ? @scenario.tags.push({'name' => tag_name}) : true
       end
 
       def before_step(step)
+        return if @connection_error
         @delayed_messages = []
-        @start_time = Time.now
+        @step_start_time = Time.now
       end
 
       def before_step_result(*args)
-        @duration = Time.now - @start_time
+        return if @connection_error
+        @step_duration = Time.now - @step_start_time
       end
 
       def before_feature_element(feature_element)
-        @feature_element.element_type = AST_CLASSES[feature_element.class]
+        return if @connection_error
+        @scenario.element_type = AST_CLASSES[feature_element.class]
       end
 
       def background_name(keyword, name, file_colon_line, source_indent)
+        return if @connection_error
         @io.puts "Background #{name}"
-        @feature_element.name=name
-        @feature_element.keyword = keyword
-        postFeatureElement(@feature_element)
+        @scenario.name=name
+        @scenario.keyword = keyword
+        post_scenario
+
       end
 
       def scenario_name(keyword, name, file_colon_line, source_indent)
+        return if @connection_error
         @io.puts "scenario #{name}"
-        @feature_element.name=name
-        @feature_element.keyword = keyword
-        postFeatureElement(@feature_element)
+        @scenario.name=name
+        @scenario.keyword = keyword
+        post_scenario
+        
+      end
+
+      def post_scenario
+        return if @connection_error
+        valid,response = @stdd_client.create_scenario(@scenario)
+        if(valid)
+          @scenario.id = response
+        else
+          @connection_error = response
+          puts @connection_error
+        end
       end
 
       def after_step_result(keyword, step_match, multiline_arg, status, exception, source_indent, background, file_colon_line)
+        return if @connection_error
         step_name = step_match.format_args(lambda{|param| "*#{param}*"})
-        stepObj=StepObj.new(keyword,step_name,status,exception, @duration,@delayed_messages)
-        postStep(@scenarioID,stepObj)
-        #end
-      end
+        @step = STDDAPI::Objects::Step.new(@scenario.id,keyword, step_name)
+        @step.status=status
+        @step.error_message = exception
+        @step.duration = @step_duration
+        @step.messages = @delayed_messages 
 
-      def postFeature(featureObj)
-        if @connectionError
-          @io.puts "FEATURE WILL NOT BE REPORTED TO STDDTOOL DUE TO : #{@connectionError}"
-          return
+        valid,response = @stdd_client.add_step_to_scenario(@step)
+        if(valid)
+          # success
+        else
+          @connection_error = response
+          puts @connection_error
         end
+      end
 
-        @io.puts "posting feature #{featureObj.feature_title}"
-        uri = URI.parse(@url)
-        begin
-          http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port)
-          request = Net::HTTP::Post.new("/collectionapi/features")
-          request.add_field('X-Auth-Token', '97f0ad9e24ca5e0408a269748d7fe0a0')
-          request.body = featureObj.to_json
-          response = http.request(request)
-          case response.code
-            when /20\d/
-              #success
-            else
-              @io.puts response.body
-              @connectionError = response.body
-              @io.puts @connectionError
-          end
-
-          parsed = JSON.parse(response.body)
-
-          if parsed["error"]
-            @io.puts parsed["error"]
-          end
-          @featureID =  parsed["_id"]
-
-        rescue
-
-          @connectionError = "COULD NOT CONNECT TO HOST AT: #{@url}"
-          @io.puts @connectionError
+      def after_features(features)
+        return if @connection_error
+        valid, response = @stdd_client.update_module_stopTime(@module.id,Time.now)
+        if(valid)
+          @module = response
+        else
+          @connection_error = response
+          puts @connection_error
         end
-
       end
-
-      # def before_outline_table(outline_table)
-      #   @inside_outline = true
-      # end
-
-      # def after_outline_table(outline_table)
-      #   @inside_outline = false
-      # end
-
-      # def before_examples(examples)
-      #  @inside_outline = true
-      # end
-
-      # def  after_examples(examples)
-      #   @inside_outline = false
-      # end
-      # def before_table_row(table_row)
-      #   # @cellArray = Array.new
-      # end
-
-
-      # #additional code for scenario-outline
-
-      # def before_outline_table(outline_table)
-      #   p "before outline table"
-      #   @inside_outline = true
-      #   @outline_row = 0
-      # end
-
-      # def after_outline_table(outline_table)
-      #   p "after outline table"
-      #   @outline_row = nil
-      #   @inside_outline = false
-      # end
-
-      # def before_examples(examples)
-      #    @examples_array = Array.new
-      #    @examplesRowNumber=0;
-      # end
-
-      # def examples_name(keyword, name)
-      #   p "keyword: #{keyword}"
-      #   p "name: #{name}"
-      # end
-
-      # # def  after_examples_array(arg1)
-      # #   p "after examples array: #{arg1}"
-      # # end
-      # def before_table_row(table_row)
-      #   # @cellArray = Array.new
-      # end
-
-      # def table_cell_value(value, status)
-      #   scenarioExampleCell=ScenarioExampleCell.new(@examplesRowNumber,value,status)
-      #   postScenarioExampleCell(@scenarioID,scenarioExampleCell)
-      # end
-
-      # def after_table_row(table_row)
-
-      #     p @cellArray
-      #   if table_row.exception
-      #     p "tr exception: #{table_row.exception}"
-
-      #   end
-      #   p "after table row"
-      #   if @outline_row
-      #     @outline_row += 1
-      #   end
-      #   @examplesRowNumber = @examplesRowNumber +1
-      # end
-
-      # def after_examples(examples)
-      #   p "after examples"
-      # end
-
-
-
-
-      def postStep(scenarioID,stepObj)
-        return if @connectionError
-
-        p "posting step #{stepObj.step_name}"
-        uri = URI.parse(@url)
-        path = "/collectionapi/scenarios/#{scenarioID}"
-        req = Net::HTTP::Put.new(path, initheader = { 'X-Auth-Token' => '97f0ad9e24ca5e0408a269748d7fe0a0'})
-        req.body = stepObj.to_json
-        response = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port).start {|http| http.request(req) }
-      end
-
-      def postEmbedding(scenarioID,embeddingObj)
-        return if @connectionError
-
-        uri = URI.parse(@url)
-        path = "/collectionapi/scenarios/#{scenarioID}"
-        req = Net::HTTP::Put.new(path, initheader = { 'X-Auth-Token' => '97f0ad9e24ca5e0408a269748d7fe0a0'})
-        req.body = embeddingObj.to_json
-        response = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port).start {|http| http.request(req) }
-      end
-
-      def postFeatureElement(feature_element)
-        return if @connectionError
-        if @inside_outline
-          p "in outline"
-        end
-        p "posting featureElement #{feature_element.name}"
-        uri = URI.parse(@url)
-        http = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port)
-        request = Net::HTTP::Post.new("/collectionapi/scenarios")
-        request.add_field('X-Auth-Token', '97f0ad9e24ca5e0408a269748d7fe0a0')
-        request.body = feature_element.to_json
-        response = http.request(request)
-        # puts response.body
-        parsed = JSON.parse(response.body)
-        @scenarioID =  parsed["_id"]
-      end
-
-      # def postScenarioExampleCell(scenarioID,scenarioExampleItem)
-      #   p "posting postScenarioExampleCell"
-      #   uri = URI.parse(@url)
-      #   path = "/collectionapi/scenarios/#{scenarioID}"
-      #   req = Net::HTTP::Put.new(path, initheader = { 'X-Auth-Token' => '97f0ad9e24ca5e0408a269748d7fe0a0'})
-      #   req.body = scenarioExampleItem.to_json
-      #   response = Net::HTTP::Proxy(@proxy.host, @proxy.port).new(uri.host, uri.port).start {|http| http.request(req) }
-      # end
-
     end
   end
 end
