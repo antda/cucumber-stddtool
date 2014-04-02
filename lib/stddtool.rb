@@ -57,7 +57,7 @@ module Cucumber
           @module = response
         else
           @connection_error = response
-          puts @connection_error
+          @io.puts @connection_error
         end
       end
 
@@ -71,6 +71,7 @@ module Cucumber
 
         #Run
         create_run_if_not_exists(@project.id,run_name,run_source,run_revision)
+        
 
       end
 
@@ -81,9 +82,9 @@ module Cucumber
 
         # Om kunden finns
         if(valid && response)
-          puts "Customer already exists"
+          @io.puts "Customer already exists"
         else
-          puts "Customer does not exist, creating new.."
+          @io.puts "Customer does not exist, creating new.."
           # Skapa en kund
           valid, response = @stdd_client.create_customer customer_name
         end
@@ -93,7 +94,7 @@ module Cucumber
           return true
         else
           @connection_error = response
-          puts @connection_error
+          @io.puts @connection_error
           return false
         end
 
@@ -106,12 +107,12 @@ module Cucumber
 
       # Om projektet finns
       if(valid)
-        puts "Project already exists"
+        @io.puts "Project already exists"
         @project = response
         return true
       end
 
-      puts "Project does not exist, creating new.."
+      @io.puts "Project does not exist, creating new.."
       # Skapa ett projekt
       valid, response = @stdd_client.create_project customer_id, project_name
       if valid
@@ -119,7 +120,7 @@ module Cucumber
         return true
       else
         @connection_error = response
-        puts @connection_error
+        @io.puts @connection_error
         return false
       end
 
@@ -132,12 +133,12 @@ module Cucumber
 
       # If run exist
       if(valid)
-        puts "Run already exists"
+        @io.puts "Run already exists"
         @run = response
         return true
       end
 
-      puts "Run does not exist, creating new.."
+      @io.puts "Run does not exist, creating new.."
       # Create run
       #Run
       valid, response = @stdd_client.create_run(@project.id,run_name,run_source,run_revision)
@@ -145,7 +146,7 @@ module Cucumber
         @run = response
       else
         @connection_error = response
-        puts @connection_error
+        @io.puts @connection_error
       end
 
     end
@@ -163,14 +164,14 @@ module Cucumber
           #success
         else
           @connection_error = response
-          puts @connection_error
+          @io.puts @connection_error
         end
       end
     end
 
       def before_feature(feature)
         return if @connection_error
-        # puts feature.source_tag_names
+        # @io.puts feature.source_tag_names
         @feature = STDDAPI::Objects::Feature.new(@module.id,feature.title,Time.now)
         @feature.description = feature.description
         @feature.tags = feature.source_tag_names
@@ -181,7 +182,7 @@ module Cucumber
           @feature.id = response
         else
           @connection_error = response
-          puts @connection_error
+          @io.puts @connection_error
         end
 
         # @feature_element = FeatureElement.new
@@ -238,7 +239,7 @@ module Cucumber
           @scenario.id = response
         else
           @connection_error = response
-          puts @connection_error
+          @io.puts @connection_error
         end
       end
 
@@ -256,7 +257,7 @@ module Cucumber
           # success
         else
           @connection_error = response
-          puts @connection_error
+          @io.puts @connection_error
         end
       end
 
@@ -267,7 +268,7 @@ module Cucumber
           @module = response
         else
           @connection_error = response
-          puts @connection_error
+          @io.puts @connection_error
         end
       end
     end
