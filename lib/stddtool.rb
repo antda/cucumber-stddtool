@@ -52,7 +52,7 @@ module Cucumber
 
       def init_module name
         return if @connection_error
-        valid,response = @stdd_client.create_module(@run.id,name,'cucumber',Time.now)
+        valid,response = @stdd_client.create_module(@run.id,name,'cucumber',(Time.now.to_f * 1000).to_i)
         if(valid)
           @module = response
         else
@@ -70,13 +70,7 @@ module Cucumber
         create_project_if_not_exists(@customer.id,project_name)
 
         #Run
-        valid, response = @stdd_client.create_run(@project.id,run_name,run_source,run_revision)
-        if(valid)
-          @run = response
-        else
-          @connection_error = response
-          puts @connection_error
-        end
+        create_run_if_not_exists(@project.id,run_name,run_source,run_revision)
 
       end
 
@@ -127,6 +121,31 @@ module Cucumber
         @connection_error = response
         puts @connection_error
         return false
+      end
+
+    end
+
+    def create_run_if_not_exists project_id,run_name,run_source,run_revision
+      return if @connection_error
+      # Check if run exists
+      valid, response = @stdd_client.get_run project_id, run_name
+
+      # If run exist
+      if(valid)
+        puts "Run already exists"
+        @run = response
+        return true
+      end
+
+      puts "Run does not exist, creating new.."
+      # Create run
+      #Run
+      valid, response = @stdd_client.create_run(@project.id,run_name,run_source,run_revision)
+      if(valid)
+        @run = response
+      else
+        @connection_error = response
+        puts @connection_error
       end
 
     end
@@ -243,7 +262,7 @@ module Cucumber
 
       def after_features(features)
         return if @connection_error
-        valid, response = @stdd_client.update_module_stopTime(@module.id,Time.now)
+        valid, response = @stdd_client.update_module_stopTime(@module.id,(Time.now.to_f * 1000).to_i)
         if(valid)
           @module = response
         else
